@@ -1,0 +1,75 @@
+AWSTemplateFormateVersion: '2023-10-17'
+
+Description: A simple CloudFormation Template [String]
+
+Metadata:
+# template metadata
+  Version: '1.0.0'
+
+Parameters:
+# template parameters
+  InstanceType:
+    Description: EC2 instance type
+    Type: String
+    Default: t2.micro
+    AllowedValues:
+      - t2.micro
+      - t2.small
+      - t2.medium
+    ConstraintDescription: must be a valid EC2 instance type.
+
+Mappings:
+  # set of mappings
+  RegionMap:
+    us-east-1:
+      "32": "ami-6411e20d"
+      "64": "ami-7a11e213"
+    us-west-1:
+      "32": "ami-c9c7978c"
+      "64": "ami-cfc7978a"
+    eu-west-1:
+      "32": "ami-37c2f643"
+      "64": "ami-31c2f645"
+    ap-southeast-1:
+      "32": "ami-66f28c34"
+      "64": "ami-60f28c32"
+    ap-northeast-1:
+      "32": "ami-9c03a89d"
+      "64": "ami-a003a8a1"
+  
+Conditions:
+  # set of conditions
+  CreateProdResources: !Equals [ !Ref EnvType, prod ]
+
+Transform:
+  # set of transforms
+  - AWS::Serverless-2016-10-31
+
+Resources:
+  # set of resources
+  MyBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: PublicRead
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: error.html
+  Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      ImageId: !FindInMap [RegionMap, !Ref "AWS::Region", 32]
+  MyTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      Subscription:
+        - Endpoint: !Ref MyEmail
+          Protocol: email
+      TopicName: !Ref MyTopicName
+
+Outputs:
+  # set of outputs
+  WebsiteURL:
+    Description: URL for website hosted on S3
+    Value: !GetAtt MyBucket.WebsiteURL
+  
